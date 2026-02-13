@@ -58,6 +58,33 @@ function resetTimer(req, res){
    }
 } 
 
+function revertTimerState(req, res){
+    try {
+        const {id} = req.params; 
+        //check whether the id exists 
+        const monitor = db.get(id);
+        if(!monitor) throw new Error("Monitor does not exist"); 
+        if(monitor.status === "ACTIVE"){
+            clearTimeout(monitor.timeRef);
+            monitor.status = "PAUSED"; 
+            monitor.lastUpdated = new Date();
+            db.set(id, monitor); 
+            return res.status(200).json({message: "Timer paused successfully"})
+        }
+        else if(monitor.status === "PAUSED"){
+            clearTimeout(monitor.timeRef);
+            monitor.status = "ACTIVE"; 
+            monitor.timeRef = setTimeout(() => trigger(id), monitor.timeout);
+            monitor.lastUpdated = new Date();
+            db.set(id, monitor); 
+            return res.status(200).json({message: "Timer unpaused successfully"})
+        }else throw new Error("Timer has expired");
+
+    } catch (error) {
+        return res.status(400).json({message: error.message})
+    }
+}
 
 
-module.exports = { createMonitor, resetTimer  }
+
+module.exports = { createMonitor, resetTimer, revertTimerState  }
