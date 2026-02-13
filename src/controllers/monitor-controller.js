@@ -1,4 +1,5 @@
-const monitorsMap = new Map();
+const db = require('../db/db');
+const trigger = require('../helpers/trigger')
 
 function createMonitor(req, res){
     try {
@@ -11,9 +12,9 @@ function createMonitor(req, res){
 
 
         //convert the timeout to ms and add a grace period of 5s  due to poor network 
-        const newTimeout = (timeout * 1000) + 500; 
+        const newTimeout = (timeout * 1000) + 5000; 
 
-        monitorsMap.set(id, {
+        db.set(id, {
             id: `${id}`,
             status: "ACTIVE",
             timeout: newTimeout,
@@ -31,4 +32,32 @@ function createMonitor(req, res){
     }
 }
 
-module.exports = { createMonitor,  }
+function resetTimer(req, res){
+   try {
+     const { id } = req.params; 
+    
+    //check for the existence of the id
+    const monitor = db.get(id);
+    if(!monitor) throw new Error("Monitor not found");
+
+    //check if the monitor has expired
+    if(monitor.status === "DOWN") {
+        return res.status(200).json({message: "Timer has expired"});
+    }
+    //reset the timer 
+    const newTimeout = monitor.timeout; 
+    clearTimeout(monitor.timeRef);
+    monitor.timeRef = setTimeout(() => trigger(id), newTimeout);
+    monitor.lastUpdated = new Date();
+    db.set(id, monitor);
+    console.log(db)
+    return res.status(200).json({message: "Timer has been reset successfully"})
+
+   } catch (error) {
+    return res.status(404).json({message: error.message}); 
+   }
+} 
+
+
+
+module.exports = { createMonitor, resetTimer  }
