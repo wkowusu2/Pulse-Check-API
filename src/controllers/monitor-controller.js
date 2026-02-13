@@ -50,7 +50,6 @@ function resetTimer(req, res){
     monitor.timeRef = setTimeout(() => trigger(id), newTimeout);
     monitor.lastUpdated = new Date();
     db.set(id, monitor);
-    console.log(db)
     return res.status(200).json({message: "Timer has been reset successfully"})
 
    } catch (error) {
@@ -85,6 +84,24 @@ function revertTimerState(req, res){
     }
 }
 
+function getAllMonitors(req, res){
+    try {
+        let allMonitors = [];
+        for(let monitor of db.values()){
+            let refinedMonitor = {
+                id: monitor.id,
+                status: monitor.status,
+                createdAt: monitor.createdAt,
+                lastUpdated: monitor.lastUpdated
+            };
+            allMonitors.push(refinedMonitor)
+        }
+        return res.status(200).json({data: allMonitors})
+    } catch (error) {
+        return res.status(400).json({message: error.message})
+    }
+}
 
 
-module.exports = { createMonitor, resetTimer, revertTimerState  }
+
+module.exports = { createMonitor, resetTimer, revertTimerState, getAllMonitors  };
